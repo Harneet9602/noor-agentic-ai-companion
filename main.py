@@ -2,70 +2,72 @@ from graph import app
 from langchain_core.messages import HumanMessage
 import uuid
 
-print("Mental Health Bot (Type 'q' to quit)")
-MY_NAME = input("What should I call you? ")
-BOT_NAME = "Noor🤍"
-# --- MEMORY CONFIGURATION ---
-# OPTION A: Long-Term Memory (Recommended)
-# Noor will remember you even if you close the code and come back tomorrow.
-thread_id = f"user_{MY_NAME}_persistent_thread" 
+# --- CONFIGURATION ---
+print("\n" + "="*60)
+print("      🌿 SEHAJ: Stateful Holistic AI Journal 🌿")
+print("="*60)
 
-# OPTION B: Short-Term Memory
-# thread_id = str(uuid.uuid4()) # Uncomment this if you want a fresh start every time.
+# 1. User Setup
+MY_NAME = input("\nFirst, what should I call you? (e.g., Honey): ").strip() or "User"
+BOT_NAME = "SEHAJ"
 
-# Create the config dictionary that LangGraph needs to save checkpoints
+# 2. Memory Configuration (Persistence)
+# We use a persistent thread ID so the bot remembers you across messages.
+thread_id = f"user_{MY_NAME}_persistent_thread"
 config = {"configurable": {"thread_id": thread_id}}
 
 def print_welcome_message():
-    print("\n" + "="*50)
-    print(f"🌿  Hello, {MY_NAME}! I am {BOT_NAME},your AI Companion.  🌿")
-    print("="*50)
-    print("\nI am here to help you balance your Mind, Body, and Soul.")
-    print("I have three distinct modes to support you:\n")
+    """Displays the menu of available agents."""
+    print(f"\n✨ Hello, {MY_NAME}! I am {BOT_NAME}, your AI Life Companion.")
+    print("I have a team of specialist agents ready to help you:\n")
     
-    print("🧘‍♀️  THERAPIST MODE (Emotional Support)")
-    print("    - Vent about stress, anxiety, or relationships.")
-    print("    - Get CBT-based reflection and grounding.")
+    print("🧘‍♀️  THERAPIST (Serena)   | Emotional support, venting, and CBT.")
+    print("🌿  HABIT (Noor)         | Lifestyle discipline, 'Core 4', and consistency.")
+    print("⚡  FITNESS (Kai)        | Workouts, sleep tracking, and diet strategy.")
+    print("🎓  PROFESSOR (Turing)   | Study planning, concepts, and research papers.")
+    print("👾  GAMES (Pixel)        | Distraction, boredom killing, and trivia.")
+    print("🛡️  SAFETY (Guardian)    | Crisis intervention and immediate help.")
     
-    print("⚡  HABIT COACH MODE (Action & Discipline)")
-    print("    - Track your 10k steps, water, or study goals.")
-    print("    - Get 'tough love' for procrastination.")
-    
-    print("🛡️  SAFETY MODE (Crisis Intervention)")
-    print("    - Immediate resources if you feel unsafe.")
-    
-    print("\n💡  TRY SAYING:")
-    print("    • \"I feel really overwhelmed with my studies today.\"")
-    print("    • \"I just walked 10,000 steps!\"")
-    print("    • \"I'm feeling lonely and overthinking everything.\"")
-    print("    • \"I'm too lazy to clean my room, help me.\"")
-    print("-" * 50 + "\n")
+    print("\n💡  TRY ASKING:")
+    print("   • \"I'm feeling really anxious about my exams.\" (Routes to Professor/Therapist)")
+    print("   • \"Make me a gym plan for glutes.\" (Routes to Fitness)")
+    print("   • \"I'm bored, let's play a game.\" (Routes to Pixel)")
+    print("   • \"I'm too lazy to clean my room.\" (Routes to Habit)")
+    print("-" * 60 + "\n")
 
+# --- MAIN LOOP ---
 print_welcome_message()
 
 while True:
-    user_input = input(f"✨{MY_NAME}: ")
-    if user_input.lower() in ['q','quit',"exit", 'bye']:
-        print("👋 Goodbye! Take care of yourself.")
-        break
-
-    # Skip empty inputs
-    if not user_input.strip():
-        continue
-    # Prepare the state 
-    initial_state ={
-        "messages": [HumanMessage(content=user_input)],
-        "user_name": MY_NAME
-        }
-    
-
     try:
-        result = app.invoke(initial_state,config=config)
+        user_input = input(f"💬 {MY_NAME}: ")
+        
+        # Exit Condition
+        if user_input.lower() in ['q', 'quit', 'exit', 'bye']:
+            print(f"👋 Goodbye, {MY_NAME}. Stay balanced.")
+            break
 
-        #The result contains the full updated state(history).
-        #We want the very last message, which is the AI's response.
+        # Skip empty inputs
+        if not user_input.strip():
+            continue
+            
+        # Prepare the state
+        # We pass the user_name so every agent knows who they are talking to
+        initial_state = {
+            "messages": [HumanMessage(content=user_input)],
+            "user_name": MY_NAME
+        }
+
+        # Run the Graph (The Brain)
+        # config=config enables the Memory/Checkpointing
+        result = app.invoke(initial_state, config=config)
+
+        # Extract the Last Message (The Agent's Response)
         last_message = result['messages'][-1]
+        
         print(f"\n✨ {BOT_NAME}: {last_message.content}\n")
+        print("-" * 60)
 
     except Exception as e:
-        print(f"An error occurred: {e}")
+        print(f"\n❌ An error occurred: {e}")
+        print("Tip: Make sure your GROQ_API_KEY is set in .env")

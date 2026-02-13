@@ -1,50 +1,64 @@
 import sqlite3
-from langgraph.graph import StateGraph, END
 from langgraph.checkpoint.sqlite import SqliteSaver
+from langgraph.graph import StateGraph, END
 from state import AgentState
-from nodes import supervisor_node, therapist_node, habit_node, safety_node
+from nodes import (
+    supervisor_node,
+    therapist_node,
+    habit_node,
+    fitness_node,
+    professor_node,
+    games_node,
+    safety_node
+)
 
-#Initialize the Graph
+# 1. Setup the Database Connection (The Memory Bank)
+# check_same_thread=False is needed for Streamlit to not crash
+conn = sqlite3.connect("checkpoints.sqlite", check_same_thread=False)
+memory = SqliteSaver(conn)
+
+# 2. Initialize the Graph
 workflow = StateGraph(AgentState)
 
-#Add the nodes (The Agents)
+# 3. Register the Nodes
 workflow.add_node("supervisor", supervisor_node)
-workflow.add_node("therapist",therapist_node)
-workflow.add_node("safety", safety_node)
+workflow.add_node("therapist", therapist_node)
 workflow.add_node("habit", habit_node)
+workflow.add_node("fitness", fitness_node)
+workflow.add_node("professor", professor_node)
+workflow.add_node("games", games_node)
+workflow.add_node("safety", safety_node)
 
-#Define the Entry point
-#The conversation always starts with the Supervisor analyzing the input.
+# 4. Set Entry Point
 workflow.set_entry_point("supervisor")
 
-#Add Conditional Edges (Routing Logic)
-#The Supervisor returns a 'next' key (either 'THERAPIST' or 'SAFETY').
-#We map that return value to the actual node names we defined in step 2.
+# 5. Add Routing Logic
 workflow.add_conditional_edges(
-    'supervisor',
+    "supervisor",
     lambda state: state['next'],
     {
-       'THERAPIST': 'therapist',
-       'SAFETY': 'safety',
-       'HABIT': 'habit'
+        "THERAPIST": "therapist",
+        "HABIT": "habit",
+        "FITNESS": "fitness",
+        "PROFESSOR": "professor",
+        "GAMES": "games",
+        "SAFETY": "safety"
     }
 )
 
-# Add Normal Edges (Looping or Ending)
-# After the therapist or safety agent speaks, we end this turn.
-workflow.add_edge("therapist",END)
-workflow.add_edge('safety',END)
-workflow.add_edge('habit',END)
+# 6. Returns
+workflow.add_edge("therapist", END)
+workflow.add_edge("habit", END)
+workflow.add_edge("fitness", END)
+workflow.add_edge("professor", END)
+workflow.add_edge("games", END)
+workflow.add_edge("safety", END)
 
-conn = sqlite3.connect("memory.sqlite", check_same_thread=False)
-memory = SqliteSaver(conn)
-
-#Compile the graph with memory
+# 7. Compile with Memory (CRITICAL STEP)
+# This enables the bot to "remember" past turns
 app = workflow.compile(checkpointer=memory)
 
 # from graph import app
-
-# # This generates the Mermaid syntax for your graph
 # print(app.get_graph().draw_mermaid())
 # try:
 #     png_data = app.get_graph().draw_mermaid_png()

@@ -1,5 +1,5 @@
 import operator
-from typing import Annotated,List, TypedDict
+from typing import Annotated,List, TypedDict,Union
 from langchain_core.messages import BaseMessage
 
 class AgentState(TypedDict):
